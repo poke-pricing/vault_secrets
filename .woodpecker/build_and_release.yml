@@ -6,8 +6,7 @@ steps:
     - name: Build and Release
       image: python:3.13
       environment:
-        TWINE_USERNAME:
-          from_secret: __token__
+        TWINE_USERNAME: __token__
         TWINE_PASSWORD:
           from_secret: PYPI_TOKEN
       commands:
