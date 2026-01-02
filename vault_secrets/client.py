@@ -34,12 +34,12 @@ class VaultSecretsClient:
             raise Exception("AppRole authentication failed")
         return login_response
 
-    def get_secret(self, path, version=None):
+    def get_secret(self, path, env, version=None):
         """Fetches a single secret at the specified path."""
         if not self.client.is_authenticated():
             self.__login_approle()
         params = {
-            'path': path,
+            'path': f"{self.__standardize_env(env)}/{path}",
             'mount_point': self.mount_point
         }
         if version:
@@ -68,17 +68,17 @@ class VaultSecretsClient:
         secrets = self.get_secret(f"{self.__standardize_env(env)}/supabase")
         return secrets["POSTGRES_HOST"], secrets["POSTGRES_DB"], secrets["POSTGRES_USER"], secrets["POSTGRES_PASSWORD"]
 
-    def __list_secrets(self, path=""):
+    def __list_secrets(self,env, path=""):
         """Lists all sub-secrets (folders and keys) under the given path."""
         if not self.client.is_authenticated():
             self.__login_approle()
         result = self.client.secrets.kv.v2.list_secrets(
-            path=path,
+            path=f"{self.__standardize_env(env)}/{path}",
             mount_point=self.mount_point,
         )
         return result["data"]["keys"]
 
-    def get_all_secrets(self, path=""):
+    def get_all_secrets(self,env, path=""):
         """
         Recursively gets all secrets under a given path. Returns a dict:
         {
@@ -87,17 +87,17 @@ class VaultSecretsClient:
         }
         """
         all_secrets = {}
-        keys = self.__list_secrets(path)
+        keys = self.__list_secrets(env,path)
         for key in keys:
             next_path = f"{path}/{key}" if path else key
             if key.endswith("/"):
                 # It's a subfolder. Recursively get secrets.
-                more_secrets = self.get_all_secrets(next_path.rstrip("/"))
+                more_secrets = self.get_all_secrets(env,next_path.rstrip("/"))
                 all_secrets.update(more_secrets)
             else:
                 # It's a secret entry.
                 try:
-                    secret = self.get_secret(next_path)
+                    secret = self.get_secret(next_path,env)
                     all_secrets[next_path] = secret
                 except Exception as e:
                     # Optionally handle missing or unreadable secrets
