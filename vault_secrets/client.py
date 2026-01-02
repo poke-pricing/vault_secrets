@@ -65,7 +65,7 @@ class VaultSecretsClient:
         Fetches Supabase-related secrets stored under the given path.
         returns in the form: (POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
         """
-        secrets = self.get_all_secrets(f"{self.__standardize_env(env)}/supabase")
+        secrets = self.get_secret(f"{self.__standardize_env(env)}/supabase")
         return secrets["POSTGRES_HOST"], secrets["POSTGRES_DB"], secrets["POSTGRES_USER"], secrets["POSTGRES_PASSWORD"]
 
     def __list_secrets(self, path=""):
