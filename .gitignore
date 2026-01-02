@@ -1,3 +1,4 @@
 /.idea
 /build
-/vault_secrets.egg-info
+/snoogle13_vault_secrets.egg-info
+/dist

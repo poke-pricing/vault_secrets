@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vault-secrets"
+name = "snoogle13-vault-secrets"
 version = "0.1.5"
 description = "Retrieve secrets from HashiCorp Vault using AppRole authentication."
 authors = [
