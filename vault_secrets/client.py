@@ -47,9 +47,22 @@ class VaultSecretsClient:
         secret = self.client.secrets.kv.v2.read_secret_version(**params)
         return secret['data']['data']
 
+    @staticmethod
+    def __standardize_env(env):
+        """Converts environment names to standardized folder names."""
+        mapping = {
+            'development': 'stg',
+            'dev': 'stg',
+            'staging': 'stg',
+            'stg': 'stg',
+            'production': 'prd',
+            'prd': 'prd',
+        }
+        return mapping.get(env.lower(), "stg")
+
     def get_supabase_secrets(self, env, version=None):
         """Fetches Supabase-related secrets stored under the given path."""
-        return self.get_all_secrets(f"{env}/supabase")
+        return self.get_all_secrets(f"{self.__standardize_env(env)}/supabase")
 
     def __list_secrets(self, path=""):
         """Lists all sub-secrets (folders and keys) under the given path."""
