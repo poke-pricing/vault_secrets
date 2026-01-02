@@ -1,0 +1,88 @@
+import hvac
+import os
+
+class VaultSecretsClient:
+    def __init__(
+        self,
+        url=None,
+        role_id=None,
+        secret_id=None,
+        mount_point='secret',
+        approle_mount_point='approle',
+        verify=True,
+        login_on_init=True,
+    ):
+        self.url = url or os.getenv('VAULT_ADDR')
+        self.role_id = role_id or os.getenv('VAULT_ROLE_ID')
+        self.secret_id = secret_id or os.getenv('VAULT_SECRET_ID')
+        self.mount_point = mount_point
+        self.approle_mount_point = approle_mount_point
+        self.verify = verify
+        self.client = hvac.Client(url=self.url, verify=self.verify)
+        if login_on_init:
+            self.__login_approle()
+
+    def __login_approle(self):
+        if not self.role_id or not self.secret_id:
+            raise ValueError("AppRole role_id and secret_id are required for authentication.")
+        login_response = self.client.auth.approle.login(
+            role_id=self.role_id,
+            secret_id=self.secret_id,
+            mount_point=self.approle_mount_point,
+        )
+        if not self.client.is_authenticated():
+            raise Exception("AppRole authentication failed")
+        return login_response
+
+    def get_secret(self, path, version=None):
+        """Fetches a single secret at the specified path."""
+        if not self.client.is_authenticated():
+            self.__login_approle()
+        params = {
+            'path': path,
+            'mount_point': self.mount_point
+        }
+        if version:
+            params['version'] = version
+        secret = self.client.secrets.kv.v2.read_secret_version(**params)
+        return secret['data']['data']
+
+    def get_supabase_secrets(self, env, version=None):
+        """Fetches Supabase-related secrets stored under the given path."""
+        return self.get_all_secrets(f"{env}/supabase")
+
+    def __list_secrets(self, path=""):
+        """Lists all sub-secrets (folders and keys) under the given path."""
+        if not self.client.is_authenticated():
+            self.__login_approle()
+        result = self.client.secrets.kv.v2.list_secrets(
+            path=path,
+            mount_point=self.mount_point,
+        )
+        return result["data"]["keys"]
+
+    def get_all_secrets(self, path=""):
+        """
+        Recursively gets all secrets under a given path. Returns a dict:
+        {
+            "subpath/key1": { ...secret keyvalues... },
+            "subpath/key2": { ...secret keyvalues... },
+        }
+        """
+        all_secrets = {}
+        keys = self.__list_secrets(path)
+        for key in keys:
+            next_path = f"{path}/{key}" if path else key
+            if key.endswith("/"):
+                # It's a subfolder. Recursively get secrets.
+                more_secrets = self.get_all_secrets(next_path.rstrip("/"))
+                all_secrets.update(more_secrets)
+            else:
+                # It's a secret entry.
+                try:
+                    secret = self.get_secret(next_path)
+                    all_secrets[next_path] = secret
+                except Exception as e:
+                    # Optionally handle missing or unreadable secrets
+                    print(f"Error fetching {next_path}: {e}")
+        return all_secrets
