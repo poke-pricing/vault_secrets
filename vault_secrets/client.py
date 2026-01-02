@@ -61,8 +61,12 @@ class VaultSecretsClient:
         return mapping.get(env.lower(), "stg")
 
     def get_supabase_secrets(self, env, version=None):
-        """Fetches Supabase-related secrets stored under the given path."""
-        return self.get_all_secrets(f"{self.__standardize_env(env)}/supabase")
+        """
+        Fetches Supabase-related secrets stored under the given path.
+        returns in the form: (POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
+        """
+        secrets = self.get_all_secrets(f"{self.__standardize_env(env)}/supabase")
+        return secrets["POSTGRES_HOST"], secrets["POSTGRES_DB"], secrets["POSTGRES_USER"], secrets["POSTGRES_PASSWORD"]
 
     def __list_secrets(self, path=""):
         """Lists all sub-secrets (folders and keys) under the given path."""
