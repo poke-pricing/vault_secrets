@@ -75,7 +75,7 @@ class VaultSecretsClient:
         returns in the form: (POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
         """
         secrets = self.get_secret(f"supabase", env, version)
-        return secrets["POSTGRES_HOST_TRANSACTION"], secrets["POSTGRES_DB"], secrets["POSTGRES_USER"], secrets[
+        return secrets["POSTGRES_HOST_TRANSACTION"], secrets["POSTGRES_DB"], secrets["POSTGRES_USER_TRANSACTION"], secrets[
             "POSTGRES_PASSWORD"]
 
     def __list_secrets(self, env, path=""):
